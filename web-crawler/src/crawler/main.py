@@ -29,9 +29,10 @@ def classify_url(link,domains):
 
 def normalize_url(link,baseurl):
        absolute_url=urljoin(baseurl,link)
-       absolute_url,fragment=urldefrag(absolute_url)
-       return absolute_url
-       #splitted_url=urlsplit(absolute_url)
+    #    absolute_url,fragment=urldefrag(absolute_url)
+    #    since fragment stays unused we will use this dirctly
+       return urldefrag(absolute_url).url
+       
 async def fetch_page(url,domains):
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
@@ -50,18 +51,7 @@ async def fetch_page(url,domains):
             for link_type, urls in results.items():
                 print(link_type.name, len(urls))
               
-# ------this is for test ------
-
-# for t in ["mailto:a@b.com", "https://google.com",
-#           "https://books.toscrape.com/media/x.jpg",
-#           "https://books.toscrape.com/catalogue/page-2.html"]:
-#     print(t, "->", classify_url(t, domains))
-
 if __name__ == "__main__":
     asyncio.run(fetch_page(URL, domains)) 
     # using if cause when test is imported bottom line code will automatically be executed so to prevent it we used this
 
-
-    # tests will be present in test.py
-# assert classify_url("mailto:a@b.com", domains) == LinkType.INVALID  #test if value is true python runs normally if error then will print something
-# assert classify_url("https://google.com", domains) == LinkType.INTERNAL# check this output will print something wrong
