@@ -11,15 +11,16 @@ class LinkType(Enum):
     INVALID = "invalid"
 
 MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf"}
-domains = {"books.toscrape.com"}
 URL = "https://books.toscrape.com/"
+domains = {urlsplit(URL).hostname}
+
 def classify_url(link,domains):
     splitted_url=urlsplit(link)
     if splitted_url.scheme not in {"http","https"} or not splitted_url.hostname :
         return LinkType.INVALID
     extension = PurePosixPath(splitted_url.path).suffix.lower()
     if extension in MEDIA_EXTENSIONS :
-                return LinkType.MEDIA
+        return LinkType.MEDIA
     if splitted_url.hostname in domains:
         return LinkType.INTERNAL
    
@@ -42,13 +43,12 @@ async def fetch_page(url,domains):
             soup = BeautifulSoup(html, "html.parser")
             print("Title:", soup.title.string.strip() if soup.title else "No title")
             links= [a['href'] for a in soup.find_all('a',href=True)]
-            normalized_urls=set()
-            results={Link_type: set() for Link_type in LinkType}
+            results={link_type: set() for link_type in LinkType}
             for link in links :
-              normalized_url=normalize_url(link,url)
-              normalized_urls.add(normalized_url)
-              results[classify_url(normalized_url,domains)].add(normalized_url)
-            
+                normalized_url=normalize_url(link,url)
+                results[classify_url(normalized_url,domains)].add(normalized_url)
+            for link_type, urls in results.items():
+                print(link_type.name, len(urls))
               
 # ------this is for test ------
 
