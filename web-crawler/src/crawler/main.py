@@ -74,7 +74,7 @@ async def crawl(seed,domains,max_pages):
             print("Title:", title.strip() )
             for link_type, urls in links.items():
                     print(link_type.name, len(urls))
-            for internal in links[LinkType.INTERNAL]:
+            for internal in sorted(links[LinkType.INTERNAL]):
                 if internal not in seen:
                   seen.add(internal)
                   queue.append(internal)
