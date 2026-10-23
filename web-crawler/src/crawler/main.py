@@ -35,11 +35,14 @@ def normalize_url(link,baseurl):
        return urldefrag(absolute_url).url
                    
 async def fetch_html(session,url):
-    async with session.get(url) as res:
-        if res.status != 200 :
+    try:
+        async with session.get(url) as res:
+            if res.status != 200 :
                 return None
-        html=await res.text()
-        return html
+            html=await res.text()
+            return html
+    except (aiohttp.ClientError,asyncio.TimeoutError):
+        return None
     
 
 
