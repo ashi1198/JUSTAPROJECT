@@ -41,7 +41,8 @@ async def fetch_html(session,url):
                 return None
             html=await res.text()
             return html
-    except (aiohttp.ClientError,asyncio.TimeoutError):
+    except (aiohttp.ClientError,asyncio.TimeoutError) as e:
+        print(f"  error: {type(e).__name__}: {e}")
         return None
     
 
