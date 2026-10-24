@@ -5,6 +5,7 @@ from urllib.parse import urljoin, urldefrag ,urlsplit, urlunsplit
 from enum import Enum
 from pathlib import PurePosixPath
 from collections import deque
+import sys
 class LinkType(Enum):
     INTERNAL = "internal"
     EXTERNAL = "external"
@@ -12,7 +13,7 @@ class LinkType(Enum):
     INVALID = "invalid"
 
 MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf"}
-URL = "https://books.toscrape.com/"
+URL = sys.argv[1] if len(sys.argv)>1 else  "https://books.toscrape.com/"
 domains = {urlsplit(URL).hostname}
 max_pages=10
 def classify_url(link,domains):
@@ -38,11 +39,11 @@ async def fetch_html(session,url):
     try:
         async with session.get(url) as res:
             if res.status != 200 :
-                return None
+                return None 
             html=await res.text()
             return html
     except (aiohttp.ClientError,asyncio.TimeoutError) as e:
-        print(f"  error: {type(e).__name__}: {e}")
+        print(f"error: {type(e).__name__}: {e}".strip())
         return None
     
 
@@ -64,7 +65,8 @@ async def crawl(seed,domains,max_pages):
     pages_crawled=0
     queue.append(seed)
     seen.add(seed)
-    async with aiohttp.ClientSession() as session:
+    timeout=aiohttp.ClientTimeout(total=10)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         while queue and pages_crawled < max_pages :
             url=queue.popleft()
             html=await fetch_html(session,url)
@@ -87,5 +89,5 @@ async def crawl(seed,domains,max_pages):
 
 if __name__ == "__main__":
     asyncio.run(crawl(URL,domains,max_pages)) 
-    # using if cause when test is imported bottom line code will automatically be executed so to prevent it we used this
+    # using if case when test is imported bottom line code will automatically be executed so to prevent it we used this
 
