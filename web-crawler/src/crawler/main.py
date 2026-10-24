@@ -40,8 +40,8 @@ async def fetch_html(session,url):
         async with session.get(url) as res:
             if res.status != 200 :
                 return None 
-            contenttype = res.headers.get("Content-Type","")
-            if "text/html" not in contenttype:
+            content_type = res.headers.get("Content-Type","")
+            if "text/html" not in content_type:
                 return None
             html=await res.text()
             return html
