@@ -11,7 +11,7 @@ class LinkType(Enum):
     EXTERNAL = "external"
     MEDIA = "media"
     INVALID = "invalid"
-
+text ="" 
 MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf"}
 URL = sys.argv[1] if len(sys.argv)>1 else  "https://books.toscrape.com/"
 domains = {urlsplit(URL).hostname}
