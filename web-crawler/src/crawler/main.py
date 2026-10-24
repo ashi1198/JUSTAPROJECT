@@ -69,7 +69,8 @@ async def crawl(seed,domains,max_pages):
     queue.append(seed)
     seen.add(seed)
     timeout=aiohttp.ClientTimeout(total=10)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
+    headers = {"User-Agent": "MyCrawler/1.0 (ashi project)"}
+    async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
         while queue and pages_crawled < max_pages :
             url=queue.popleft()
             html=await fetch_html(session,url)
