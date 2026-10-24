@@ -40,6 +40,9 @@ async def fetch_html(session,url):
         async with session.get(url) as res:
             if res.status != 200 :
                 return None 
+            contenttype = res.headers.get("Content-Type","")
+            if "text/html" not in contenttype:
+                return None
             html=await res.text()
             return html
     except (aiohttp.ClientError,asyncio.TimeoutError) as e:
