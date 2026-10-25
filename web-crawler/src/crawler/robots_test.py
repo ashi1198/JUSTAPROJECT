@@ -25,7 +25,7 @@ def test_parse_robots():
     assert rp_noblock.can_fetch("hi","https://example.com/nothing")
     text3="\n".join([
             "User-agent: *",
-            "Disallow:/",
+            "Disallow: /",
         ])
     assert not parse_robots(text3).can_fetch("myblock","https://example.com/nothing")
 if __name__ == "__main__":
