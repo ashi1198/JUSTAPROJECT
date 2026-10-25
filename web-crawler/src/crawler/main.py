@@ -5,8 +5,13 @@ from urllib.parse import urljoin, urldefrag, urlsplit, urlunsplit
 from enum import Enum
 from pathlib import PurePosixPath
 from collections import deque
-from robots import is_allowed
+from robots import is_allowed, robots_url
+from rate_limit import wait_time, choose_gap
+
+import time
 import sys
+
+DEFAULT_GAP = 1
 
 
 class LinkType(Enum):
@@ -69,6 +74,7 @@ def extract_links(html, base_url, domains):
 
 
 async def crawl(seed, domains, max_pages):
+    last_requests = dict()
     robots_cache = dict()
     queue = deque()
     seen = set()
@@ -83,8 +89,15 @@ async def crawl(seed, domains, max_pages):
             if not await is_allowed(session, robots_cache, url, headers["User-Agent"]):
                 print(f"skipped (robots.txt): {url}")
                 continue
+            key = robots_url(url)
+            parser = robots_cache[key]
+            gap = choose_gap(parser.crawl_delay(headers["User-Agent"]), DEFAULT_GAP)
+            now = time.monotonic()
+            wait = wait_time(last_requests.get(key), now, gap)
+            last_requests[key] = now + wait  # reserve the slot BEFORE sleeping
+            print(f"  waiting {wait:.2f}s")  # temporary, to see it work
+            await asyncio.sleep(wait)
             html = await fetch_html(session, url)
-            await asyncio.sleep(1)
             pages_crawled += 1
             if html is None:
                 print(f"[{pages_crawled}] {url} failed")
