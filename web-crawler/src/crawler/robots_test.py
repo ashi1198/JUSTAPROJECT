@@ -23,6 +23,11 @@ def test_parse_robots():
     ])
     rp_noblock=parse_robots(text2)
     assert rp_noblock.can_fetch("hi","https://example.com/nothing")
+    text3="\n".join([
+            "User-agent: *",
+            "Disallow:/",
+        ])
+    assert not parse_robots(text3).can_fetch("myblock","https://example.com/nothing")
 if __name__ == "__main__":
     test_parse_robots()
     print("All robots tests passed")
