@@ -24,6 +24,7 @@ URL = sys.argv[1] if len(sys.argv) > 1 else "https://books.toscrape.com/"
 domains = {urlsplit(URL).hostname}
 max_pages = 10
 max_depth = 1
+max_attempts = 3
 
 
 def classify_url(link, domains):
@@ -46,19 +47,35 @@ def normalize_url(link, baseurl):
     return urldefrag(absolute_url).url
 
 
+def is_retryable(status, error_name):
+    if 500 <= status <= 599:
+        return True
+    if status == 429:
+        return True
+    if error_name == "TimeoutError":
+        return True
+    return False
+
+
+def backoff_delay(attempt, base):
+    return base * 2 ** (attempt - 1)
+
+
 async def fetch_html(session, url):
     try:
         async with session.get(url) as res:
             if res.status != 200:
-                return None
+                return None, res.status, None
             content_type = res.headers.get("Content-Type", "")
             if "text/html" not in content_type:
-                return None
-            html = await res.text()
-            return html
-    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                return None, 200, None
+            html = (
+                await res.text()
+            )  # errors="ignore" should i use this questions for you claude
+            return html, 200, None
+    except (aiohttp.ClientError, asyncio.TimeoutError, TimeoutError) as e:
         print(f"error: {type(e).__name__}: {e}".strip())
-        return None
+        return (None, None, type(e).__name__)
 
 
 def extract_links(html, base_url, domains):
@@ -91,11 +108,17 @@ async def crawl(seed, domains, max_pages, max_depth):
             key = robots_url(url)
             parser = robots_cache[key]
             gap = choose_gap(parser.crawl_delay(headers["User-Agent"]), DEFAULT_GAP)
-            await wait_for_turn(last_requests, key, gap)
-            html = await fetch_html(session, url)
+            for attempt in range(max_attempts):
+                await wait_for_turn(last_requests, key, gap)
+                html, status, error_name = await fetch_html(session, url)
+                if not is_retryable(status, error_name):
+                    break
+                gap = backoff_delay(attempt, 2)
             pages_crawled += 1
             if html is None:
-                print(f"[{pages_crawled}] (depth {depth}) {url} failed")
+                print(
+                    f"[{pages_crawled}] (depth {depth}) {url} failed after attempt:{attempt+1}"
+                )
                 continue
             print(f"[{pages_crawled}] (depth {depth}) {url}")
             title, links = extract_links(html, url, domains)
