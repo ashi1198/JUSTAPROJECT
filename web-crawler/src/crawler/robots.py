@@ -39,7 +39,8 @@ async def get_robots(session, cache, url):
         parser = parser_for_response(status, text)
         cache[key] = parser
         return parser
-    except (aiohttp.ClientError, asyncio.TimeoutError):
+    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+        print(f"  robots fetch failed for {key}: {type(e).__name__}: {e}")
         parser = parse_robots(BLOCK_ALL)
     cache[key] = parser
     return parser

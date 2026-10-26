@@ -24,7 +24,8 @@ class LinkType(Enum):
 MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf"}
 URL = sys.argv[1] if len(sys.argv) > 1 else "https://books.toscrape.com/"
 domains = {urlsplit(URL).hostname}
-max_pages = 10
+max_pages = 100
+max_depth = 1
 
 
 def classify_url(link, domains):
@@ -73,19 +74,19 @@ def extract_links(html, base_url, domains):
     return title, results
 
 
-async def crawl(seed, domains, max_pages):
+async def crawl(seed, domains, max_pages, max_depth):
     last_requests = dict()
     robots_cache = dict()
     queue = deque()
     seen = set()
     pages_crawled = 0
-    queue.append(seed)
+    queue.append((seed, 0))
     seen.add(seed)
     timeout = aiohttp.ClientTimeout(total=10)
     headers = {"User-Agent": "MyCrawler/1.0 (ashi project)"}
     async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
         while queue and pages_crawled < max_pages:
-            url = queue.popleft()
+            url, depth = queue.popleft()
             if not await is_allowed(session, robots_cache, url, headers["User-Agent"]):
                 print(f"skipped (robots.txt): {url}")
                 continue
@@ -95,25 +96,26 @@ async def crawl(seed, domains, max_pages):
             now = time.monotonic()
             wait = wait_time(last_requests.get(key), now, gap)
             last_requests[key] = now + wait  # reserve the slot BEFORE sleeping
-            print(f"  waiting {wait:.2f}s")  # temporary, to see it work
+            # print(f"  waiting {wait:.2f}s")  # temporary, to see it work
             await asyncio.sleep(wait)
             html = await fetch_html(session, url)
             pages_crawled += 1
             if html is None:
                 print(f"[{pages_crawled}] {url} failed")
                 continue
-            print(f"[{pages_crawled}] {url}")
+            print(f"[{pages_crawled}] (depth {depth}) {url}")
             title, links = extract_links(html, url, domains)
             # links is a dictionary of enum linktype as key and urls in it as values
             print("Title:", title.strip())
             for link_type, urls in links.items():
                 print(link_type.name, len(urls))
-            for internal in sorted(links[LinkType.INTERNAL]):
-                if internal not in seen:
-                    seen.add(internal)
-                    queue.append(internal)
+            if depth < max_depth:
+                for internal in sorted(links[LinkType.INTERNAL]):
+                    if internal not in seen:
+                        seen.add(internal)
+                        queue.append((internal, depth + 1))
 
 
 if __name__ == "__main__":
-    asyncio.run(crawl(URL, domains, max_pages))
+    asyncio.run(crawl(URL, domains, max_pages, max_depth))
     # using if case when test is imported bottom line code will automatically be executed so to prevent it we used this
