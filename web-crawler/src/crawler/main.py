@@ -119,7 +119,8 @@ async def crawl(seed, domains, max_pages, max_depth):
             pages_crawled += 1
             if html is None:
                 print(
-                    f"[{pages_crawled}] (depth {depth}) {url} failed after attempt:{attempt+1}"
+                    f"[{pages_crawled}] (depth {depth}) {url} "
+                    f"failed after {attempt} attempt(s): {status or error_name}"
                 )
                 continue
             print(f"[{pages_crawled}] (depth {depth}) {url}")
