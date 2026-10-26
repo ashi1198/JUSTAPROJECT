@@ -48,13 +48,11 @@ def normalize_url(link, baseurl):
 
 
 def is_retryable(status, error_name):
-    if 500 <= status <= 599:
+    if error_name is not None:  # network-level failure: there is no status
         return True
     if status == 429:
         return True
-    if error_name == "TimeoutError":
-        return True
-    return False
+    return status is not None and 500 <= status <= 599
 
 
 def backoff_delay(attempt, base):
@@ -69,12 +67,9 @@ async def fetch_html(session, url):
             content_type = res.headers.get("Content-Type", "")
             if "text/html" not in content_type:
                 return None, 200, None
-            html = (
-                await res.text()
-            )  # errors="ignore" should i use this questions for you claude
+            html = await res.text(errors="ignore")
             return html, 200, None
     except (aiohttp.ClientError, asyncio.TimeoutError, TimeoutError) as e:
-        print(f"error: {type(e).__name__}: {e}".strip())
         return (None, None, type(e).__name__)
 
 
@@ -107,13 +102,20 @@ async def crawl(seed, domains, max_pages, max_depth):
                 continue
             key = robots_url(url)
             parser = robots_cache[key]
-            gap = choose_gap(parser.crawl_delay(headers["User-Agent"]), DEFAULT_GAP)
-            for attempt in range(max_attempts):
+            site_gap = choose_gap(
+                parser.crawl_delay(headers["User-Agent"]), DEFAULT_GAP
+            )
+            gap = site_gap
+            for attempt in range(1, max_attempts + 1):
                 await wait_for_turn(last_requests, key, gap)
                 html, status, error_name = await fetch_html(session, url)
                 if not is_retryable(status, error_name):
                     break
-                gap = backoff_delay(attempt, 2)
+                if attempt < max_attempts:
+                    print(
+                        f"  retry {attempt}/{max_attempts} for {url}: {status or error_name}"
+                    )
+                    gap = max(site_gap, backoff_delay(attempt, 2))
             pages_crawled += 1
             if html is None:
                 print(

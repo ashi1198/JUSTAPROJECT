@@ -22,5 +22,4 @@ async def wait_for_turn(last_requests, key, gap):
     now = time.monotonic()
     wait = wait_time(last_requests.get(key), now, gap)
     last_requests[key] = now + wait  # reserve the slot BEFORE sleeping
-    # print(f"  waiting {wait:.2f}s")  # temporary, to see it work
     await asyncio.sleep(wait)

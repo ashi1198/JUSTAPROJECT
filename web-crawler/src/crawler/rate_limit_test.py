@@ -1,4 +1,7 @@
-from rate_limit import choose_gap, wait_time
+import asyncio
+import time
+
+from rate_limit import choose_gap, wait_time, wait_for_turn
 
 
 def close(a, b):
@@ -24,7 +27,59 @@ def test_wait_time():
     assert close(wait_time(100, 99, 1), 2)
 
 
+def test_wait_for_turn():
+    last = {}
+
+    async def run():
+        t0 = time.monotonic()
+        await wait_for_turn(last, "site", 0.3)  # first request: no wait
+        t1 = time.monotonic()
+        await wait_for_turn(last, "site", 0.3)  # second one waits about 0.3s
+        t2 = time.monotonic()
+        return t1 - t0, t2 - t1
+
+    first, second = asyncio.run(run())
+    assert first < 0.1, f"first request waited {first:.2f}s"
+    assert 0.25 < second < 0.6, f"second request waited {second:.2f}s"
+    assert "site" in last
+
+
+def test_wait_for_turn_reserves_slots():
+    # three tasks ask for a turn at the same moment; each must get its own slot
+    last = {}
+
+    async def run():
+        t0 = time.monotonic()
+        await asyncio.gather(
+            wait_for_turn(last, "site", 0.3),
+            wait_for_turn(last, "site", 0.3),
+            wait_for_turn(last, "site", 0.3),
+        )
+        return time.monotonic() - t0
+
+    total = asyncio.run(run())
+    # slots at about 0s, 0.3s, and 0.6s, so the whole thing takes about 0.6s
+    assert 0.5 < total < 1.0, f"three turns took {total:.2f}s"
+
+
+def test_wait_for_turn_sites_are_independent():
+    # a different site has its own clock, so it doesn't wait behind the first
+    last = {}
+
+    async def run():
+        await wait_for_turn(last, "site-a", 0.5)
+        t0 = time.monotonic()
+        await wait_for_turn(last, "site-b", 0.5)
+        return time.monotonic() - t0
+
+    waited = asyncio.run(run())
+    assert waited < 0.1, f"site-b waited {waited:.2f}s"
+
+
 if __name__ == "__main__":
     test_choose_gap()
     test_wait_time()
+    test_wait_for_turn()
+    test_wait_for_turn_reserves_slots()
+    test_wait_for_turn_sites_are_independent()
     print("All rate limit tests passed")
