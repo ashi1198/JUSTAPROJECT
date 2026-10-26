@@ -1,3 +1,6 @@
+import time, asyncio
+
+
 def choose_gap(crawl_delay, default_gap):
     # the site's Crawl-delay if it asks for more than our default, else our default
     # (None means the site states no delay; 0 is treated the same, because
@@ -13,3 +16,11 @@ def wait_time(last_req, now, min_gap):
         return 0  # no previous request: go straight away
     elapsed = now - last_req
     return max(0, min_gap - elapsed)
+
+
+async def wait_for_turn(last_requests, key, gap):
+    now = time.monotonic()
+    wait = wait_time(last_requests.get(key), now, gap)
+    last_requests[key] = now + wait  # reserve the slot BEFORE sleeping
+    # print(f"  waiting {wait:.2f}s")  # temporary, to see it work
+    await asyncio.sleep(wait)

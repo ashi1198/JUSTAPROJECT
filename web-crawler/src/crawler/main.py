@@ -6,9 +6,7 @@ from enum import Enum
 from pathlib import PurePosixPath
 from collections import deque
 from robots import is_allowed, robots_url
-from rate_limit import wait_time, choose_gap
-
-import time
+from rate_limit import choose_gap, wait_for_turn
 import sys
 
 DEFAULT_GAP = 1
@@ -24,7 +22,7 @@ class LinkType(Enum):
 MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf"}
 URL = sys.argv[1] if len(sys.argv) > 1 else "https://books.toscrape.com/"
 domains = {urlsplit(URL).hostname}
-max_pages = 100
+max_pages = 10
 max_depth = 1
 
 
@@ -93,20 +91,16 @@ async def crawl(seed, domains, max_pages, max_depth):
             key = robots_url(url)
             parser = robots_cache[key]
             gap = choose_gap(parser.crawl_delay(headers["User-Agent"]), DEFAULT_GAP)
-            now = time.monotonic()
-            wait = wait_time(last_requests.get(key), now, gap)
-            last_requests[key] = now + wait  # reserve the slot BEFORE sleeping
-            # print(f"  waiting {wait:.2f}s")  # temporary, to see it work
-            await asyncio.sleep(wait)
+            await wait_for_turn(last_requests, key, gap)
             html = await fetch_html(session, url)
             pages_crawled += 1
             if html is None:
-                print(f"[{pages_crawled}] {url} failed")
+                print(f"[{pages_crawled}] (depth {depth}) {url} failed")
                 continue
             print(f"[{pages_crawled}] (depth {depth}) {url}")
             title, links = extract_links(html, url, domains)
             # links is a dictionary of enum linktype as key and urls in it as values
-            print("Title:", title.strip())
+            print("Title:", title)
             for link_type, urls in links.items():
                 print(link_type.name, len(urls))
             if depth < max_depth:
