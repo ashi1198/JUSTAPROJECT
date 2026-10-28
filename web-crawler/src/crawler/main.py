@@ -181,5 +181,14 @@ if __name__ == "__main__":
     start = time.monotonic()
     records, skipped = asyncio.run(crawl(URL, domains, max_pages, max_depth))
     elapsed = time.monotonic() - start
+    summary = summarize(records, skipped, elapsed)
 
+    print("\n--- crawl summary ---")
+    print(f"pages ok:        {summary['pages_ok']}")
+    print(f"pages failed:    {summary['pages_failed']}")
+    for reason, count in summary["failure_reasons"].items():
+        print(f"  {reason}: {count}")
+    print(f"skipped (robots): {summary['skipped_robots']}")
+    print(f"links seen:      {summary['links_seen']}")
+    print(f"time:            {summary['elapsed']:.1f}s")
     # using if case when test is imported bottom line code will automatically be executed so to prevent it we used this
