@@ -8,7 +8,9 @@ from collections import deque
 from robots import is_allowed, robots_url
 from rate_limit import choose_gap, wait_for_turn
 import sys
+import time
 from dataclasses import dataclass, field
+from summary import summarize
 
 
 @dataclass
@@ -89,12 +91,12 @@ async def fetch_html(session, url):
 def extract_links(html, base_url, domains):
     soup = BeautifulSoup(html, "html.parser")
     links = [a["href"] for a in soup.find_all("a", href=True)]
-    results = {link_type: set() for link_type in LinkType}
+    links_by_type = {link_type: set() for link_type in LinkType}
     for link in links:
         normalized_url = normalize_url(link, base_url)
-        results[classify_url(normalized_url, domains)].add(normalized_url)
+        links_by_type[classify_url(normalized_url, domains)].add(normalized_url)
     title = " ".join(soup.title.get_text().split()) if soup.title else "No title"
-    return title, results
+    return title, links_by_type
 
 
 async def crawl(seed, domains, max_pages, max_depth):
@@ -150,7 +152,6 @@ async def crawl(seed, domains, max_pages, max_depth):
                 continue
             print(f"[{pages_crawled}] (depth {depth}) {url}")
             title, links_by_type = extract_links(html, url, domains)
-            # links is a dictionary of enum linktype as key and urls in it as values
             print("Title:", title)
             for link_type, urls in links_by_type.items():
                 print(link_type.name, len(urls))
@@ -167,13 +168,18 @@ async def crawl(seed, domains, max_pages, max_depth):
                     error=None,
                     attempts=attempt,
                     title=title,
-                    link_counts={t.name: len(u) for t, u in links_by_type.items()},
+                    link_counts={
+                        link_type.name: len(urls)
+                        for link_type, urls in links_by_type.items()
+                    },
                 )
             )
     return records, skipped
 
 
 if __name__ == "__main__":
+    start = time.monotonic()
     records, skipped = asyncio.run(crawl(URL, domains, max_pages, max_depth))
+    elapsed = time.monotonic() - start
 
     # using if case when test is imported bottom line code will automatically be executed so to prevent it we used this
