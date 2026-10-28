@@ -8,6 +8,19 @@ from collections import deque
 from robots import is_allowed, robots_url
 from rate_limit import choose_gap, wait_for_turn
 import sys
+from dataclasses import dataclass, field
+
+
+@dataclass
+class PageRecord:
+    url: str
+    depth: int
+    status: int | None
+    error: str | None
+    attempts: int
+    title: str | None = None
+    link_counts: dict = field(default_factory=dict)
+
 
 DEFAULT_GAP = 1
 
@@ -89,6 +102,8 @@ async def crawl(seed, domains, max_pages, max_depth):
     robots_cache = dict()
     queue = deque()
     seen = set()
+    records = []
+    skipped = 0
     pages_crawled = 0
     queue.append((seed, 0))
     seen.add(seed)
@@ -98,6 +113,7 @@ async def crawl(seed, domains, max_pages, max_depth):
         while queue and pages_crawled < max_pages:
             url, depth = queue.popleft()
             if not await is_allowed(session, robots_cache, url, headers["User-Agent"]):
+                skipped += 1
                 print(f"skipped (robots.txt): {url}")
                 continue
             key = robots_url(url)
@@ -122,20 +138,42 @@ async def crawl(seed, domains, max_pages, max_depth):
                     f"[{pages_crawled}] (depth {depth}) {url} "
                     f"failed after {attempt} attempt(s): {status or error_name}"
                 )
+                records.append(
+                    PageRecord(
+                        url=url,
+                        depth=depth,
+                        status=status,
+                        error=error_name,
+                        attempts=attempt,
+                    )
+                )
                 continue
             print(f"[{pages_crawled}] (depth {depth}) {url}")
-            title, links = extract_links(html, url, domains)
+            title, links_by_type = extract_links(html, url, domains)
             # links is a dictionary of enum linktype as key and urls in it as values
             print("Title:", title)
-            for link_type, urls in links.items():
+            for link_type, urls in links_by_type.items():
                 print(link_type.name, len(urls))
             if depth < max_depth:
-                for internal in sorted(links[LinkType.INTERNAL]):
+                for internal in sorted(links_by_type[LinkType.INTERNAL]):
                     if internal not in seen:
                         seen.add(internal)
                         queue.append((internal, depth + 1))
+            records.append(
+                PageRecord(
+                    url=url,
+                    depth=depth,
+                    status=status,
+                    error=None,
+                    attempts=attempt,
+                    title=title,
+                    link_counts={t.name: len(u) for t, u in links_by_type.items()},
+                )
+            )
+    return records, skipped
 
 
 if __name__ == "__main__":
-    asyncio.run(crawl(URL, domains, max_pages, max_depth))
+    records, skipped = asyncio.run(crawl(URL, domains, max_pages, max_depth))
+
     # using if case when test is imported bottom line code will automatically be executed so to prevent it we used this
