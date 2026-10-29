@@ -1,11 +1,11 @@
 import asyncio
 import aiohttp
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urldefrag, urlsplit, urlunsplit
+from urllib.parse import urljoin, urldefrag, urlsplit
 from enum import Enum
 from pathlib import PurePosixPath
-from collections import deque
-from robots import is_allowed, robots_url
+from collections import deque, Counter
+from robots import get_robots, robots_url
 from rate_limit import choose_gap, wait_for_turn
 import sys
 import time
@@ -51,14 +51,12 @@ def classify_url(link, domains):
         return LinkType.MEDIA
     if splitted_url.hostname in domains:
         return LinkType.INTERNAL
-
     return LinkType.EXTERNAL
 
 
 def normalize_url(link, baseurl):
+    # resolve a relative link against the page it was found on, then drop the #fragment
     absolute_url = urljoin(baseurl, link)
-    #    absolute_url,fragment=urldefrag(absolute_url)
-    #    since fragment stays unused we will use this dirctly
     return urldefrag(absolute_url).url
 
 
@@ -85,7 +83,7 @@ async def fetch_html(session, url):
             html = await res.text(errors="ignore")
             return html, 200, None
     except (aiohttp.ClientError, asyncio.TimeoutError, TimeoutError) as e:
-        return (None, None, type(e).__name__)
+        return None, None, type(e).__name__
 
 
 def extract_links(html, base_url, domains):
@@ -105,7 +103,7 @@ async def crawl(seed, domains, max_pages, max_depth):
     queue = deque()
     seen = set()
     records = []
-    skipped = 0
+    skipped = Counter()
     pages_crawled = 0
     queue.append((seed, 0))
     seen.add(seed)
@@ -114,16 +112,26 @@ async def crawl(seed, domains, max_pages, max_depth):
     async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
         while queue and pages_crawled < max_pages:
             url, depth = queue.popleft()
-            if not await is_allowed(session, robots_cache, url, headers["User-Agent"]):
-                skipped += 1
-                print(f"skipped (robots.txt): {url}")
-                continue
             key = robots_url(url)
-            parser = robots_cache[key]
+
+            # robots.txt: one parser per site (cached), plus why it may be unavailable
+            parser, unavailable = await get_robots(session, robots_cache, url)
+            if not parser.can_fetch(headers["User-Agent"], url):
+                if unavailable:
+                    skipped["robots.txt unavailable"] += 1
+                    print(f"skipped (robots.txt unavailable: {unavailable}): {url}")
+                else:
+                    skipped["robots.txt rule"] += 1
+                    print(f"skipped (robots.txt rule): {url}")
+                continue
+
+            # the site's Crawl-delay, with our own default as the minimum
             site_gap = choose_gap(
                 parser.crawl_delay(headers["User-Agent"]), DEFAULT_GAP
             )
             gap = site_gap
+
+            # up to max_attempts tries; every try waits for this site's turn
             for attempt in range(1, max_attempts + 1):
                 await wait_for_turn(last_requests, key, gap)
                 html, status, error_name = await fetch_html(session, url)
@@ -131,10 +139,14 @@ async def crawl(seed, domains, max_pages, max_depth):
                     break
                 if attempt < max_attempts:
                     print(
-                        f"  retry {attempt}/{max_attempts} for {url}: {status or error_name}"
+                        f"  retry {attempt}/{max_attempts} for {url}: "
+                        f"{status or error_name}"
                     )
                     gap = max(site_gap, backoff_delay(attempt, 2))
+
+            # retries don't count as pages: one URL is one page
             pages_crawled += 1
+
             if html is None:
                 print(
                     f"[{pages_crawled}] (depth {depth}) {url} "
@@ -150,16 +162,19 @@ async def crawl(seed, domains, max_pages, max_depth):
                     )
                 )
                 continue
+
             print(f"[{pages_crawled}] (depth {depth}) {url}")
             title, links_by_type = extract_links(html, url, domains)
             print("Title:", title)
             for link_type, urls in links_by_type.items():
                 print(link_type.name, len(urls))
+
             if depth < max_depth:
                 for internal in sorted(links_by_type[LinkType.INTERNAL]):
                     if internal not in seen:
                         seen.add(internal)
                         queue.append((internal, depth + 1))
+
             records.append(
                 PageRecord(
                     url=url,
@@ -178,10 +193,11 @@ async def crawl(seed, domains, max_pages, max_depth):
 
 
 if __name__ == "__main__":
+    # the guard stops the crawl from starting when another file imports this one
     start = time.monotonic()
     records, skipped = asyncio.run(crawl(URL, domains, max_pages, max_depth))
     elapsed = time.monotonic() - start
-    summary = summarize(records, skipped, elapsed)
+    summary = summarize(records, sum(skipped.values()), elapsed)
 
     print("\n--- crawl summary ---")
     print(f"pages ok:        {summary['pages_ok']}")
@@ -189,6 +205,9 @@ if __name__ == "__main__":
     for reason, count in summary["failure_reasons"].items():
         print(f"  {reason}: {count}")
     print(f"skipped (robots): {summary['skipped_robots']}")
+    for kind, count in skipped.items():
+        print(f"  skipped, {kind}: {count}")
     print(f"links seen:      {summary['links_seen']}")
     print(f"time:            {summary['elapsed']:.1f}s")
-    # using if case when test is imported bottom line code will automatically be executed so to prevent it we used this
+    if not records:
+        print("nothing was crawled: check the seed URL or robots.txt")
