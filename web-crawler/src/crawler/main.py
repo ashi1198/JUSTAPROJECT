@@ -7,7 +7,7 @@ from pathlib import PurePosixPath
 from collections import deque, Counter
 from robots import get_robots, robots_url
 from rate_limit import choose_gap, wait_for_turn
-import sys
+import argparse
 import time
 from dataclasses import dataclass, field
 from summary import summarize
@@ -24,9 +24,6 @@ class PageRecord:
     link_counts: dict = field(default_factory=dict)
 
 
-DEFAULT_GAP = 1
-
-
 class LinkType(Enum):
     INTERNAL = "internal"
     EXTERNAL = "external"
@@ -35,11 +32,43 @@ class LinkType(Enum):
 
 
 MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf"}
-URL = sys.argv[1] if len(sys.argv) > 1 else "https://books.toscrape.com/"
-domains = {urlsplit(URL).hostname}
-max_pages = 10
-max_depth = 1
 max_attempts = 3
+
+
+def parse_args(argv=None):
+    p = argparse.ArgumentParser(description="A polite web crawler")
+    p.add_argument(
+        "seed",
+        nargs="?",
+        default="https://books.toscrape.com/",
+        help="URL to start from (default: %(default)s)",
+    )
+    p.add_argument(
+        "--max-pages", type=int, default=10, help="stop after this many pages"
+    )
+    p.add_argument(
+        "--max-depth", type=int, default=1, help="links to follow from the seed"
+    )
+    p.add_argument(
+        "--delay",
+        type=float,
+        default=1.0,
+        help="minimum seconds between requests to one site",
+    )
+    p.add_argument(
+        "--allow-domain",
+        action="append",
+        default=[],
+        help="extra domain to treat as internal (can be repeated)",
+    )
+    args = p.parse_args(argv)
+    if urlsplit(args.seed).scheme not in {"http", "https"}:
+        p.error("the seed must start with http:// or https://")
+    if args.max_pages < 1 or args.max_depth < 0 or args.delay < 0:
+        p.error(
+            "--max-pages must be at least 1; --max-depth and --delay can't be negative"
+        )
+    return args
 
 
 def classify_url(link, domains):
@@ -97,7 +126,7 @@ def extract_links(html, base_url, domains):
     return title, links_by_type
 
 
-async def crawl(seed, domains, max_pages, max_depth):
+async def crawl(seed, domains, max_pages, max_depth, default_gap):
     last_requests = dict()
     robots_cache = dict()
     queue = deque()
@@ -127,7 +156,7 @@ async def crawl(seed, domains, max_pages, max_depth):
 
             # the site's Crawl-delay, with our own default as the minimum
             site_gap = choose_gap(
-                parser.crawl_delay(headers["User-Agent"]), DEFAULT_GAP
+                parser.crawl_delay(headers["User-Agent"]), default_gap
             )
             gap = site_gap
 
@@ -194,8 +223,13 @@ async def crawl(seed, domains, max_pages, max_depth):
 
 if __name__ == "__main__":
     # the guard stops the crawl from starting when another file imports this one
+    args = parse_args()
+    # the seed's host is always internal; --allow-domain adds more
+    domains = {urlsplit(args.seed).hostname, *args.allow_domain}
     start = time.monotonic()
-    records, skipped = asyncio.run(crawl(URL, domains, max_pages, max_depth))
+    records, skipped = asyncio.run(
+        crawl(args.seed, domains, args.max_pages, args.max_depth, args.delay)
+    )
     elapsed = time.monotonic() - start
     summary = summarize(records, sum(skipped.values()), elapsed)
 
