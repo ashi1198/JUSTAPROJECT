@@ -1,4 +1,4 @@
-from main import is_retryable, backoff_delay
+from retry import is_retryable, backoff_delay
 
 
 def test_is_retryable():

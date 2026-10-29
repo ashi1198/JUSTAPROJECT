@@ -11,6 +11,7 @@ import argparse
 import time
 from dataclasses import dataclass, field
 from summary import summarize
+from retry import is_retryable, backoff_delay
 
 
 @dataclass
@@ -87,18 +88,6 @@ def normalize_url(link, baseurl):
     # resolve a relative link against the page it was found on, then drop the #fragment
     absolute_url = urljoin(baseurl, link)
     return urldefrag(absolute_url).url
-
-
-def is_retryable(status, error_name):
-    if error_name is not None:  # network-level failure: there is no status
-        return True
-    if status == 429:
-        return True
-    return status is not None and 500 <= status <= 599
-
-
-def backoff_delay(attempt, base):
-    return base * 2 ** (attempt - 1)
 
 
 async def fetch_html(session, url):
