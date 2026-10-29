@@ -35,17 +35,26 @@ async def get_robots(session, cache, url):
     try:
         async with session.get(key) as res:
             status = res.status
-            text = await res.text()
+            text = await res.text(errors="ignore") if 200 <= status < 300 else ""
         parser = parser_for_response(status, text)
-        cache[key] = parser
-        return parser
+        unavailable = robots_unavailable_reason(status)
     except (aiohttp.ClientError, asyncio.TimeoutError) as e:
         print(f"  robots fetch failed for {key}: {type(e).__name__}: {e}")
         parser = parse_robots(BLOCK_ALL)
-    cache[key] = parser
-    return parser
+        unavailable = type(e).__name__
+    cache[key] = (parser, unavailable)
+    return cache[key]
 
 
 async def is_allowed(session, cache, url, user_agent):
     parser = await get_robots(session, cache, url)
     return parser.can_fetch(user_agent, url)
+
+
+def robots_unavailable_reason(status):
+    if 200 <= status <= 499:
+        if status == 429:
+            return "status 429"
+        return None
+    else:
+        return f"status: {status}"

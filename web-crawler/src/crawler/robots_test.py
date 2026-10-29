@@ -1,5 +1,6 @@
 from robots import parse_robots, robots_url
 from robots import parser_for_response, BLOCK_ALL
+from robots import robots_unavailable_reason
 
 AGENT = "MyCrawler"
 
@@ -165,3 +166,12 @@ if __name__ == "__main__":
     test_parser_for_response()
     test_block_all_constant()
     print("All robots tests passed")
+
+
+def test_robots_unavailable_reason():
+    for status in (200, 204, 301, 403, 404, 410):
+        assert robots_unavailable_reason(status) is None, status
+    assert robots_unavailable_reason(429) == "status 429"
+    assert robots_unavailable_reason(500) == "status 500"
+    assert robots_unavailable_reason(503) == "status 503"
+    assert robots_unavailable_reason(999) == "status 999"
