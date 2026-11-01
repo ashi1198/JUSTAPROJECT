@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 from main import parse_args
 
 
@@ -8,6 +11,8 @@ def test_defaults():
     assert args.max_depth == 1
     assert args.delay == 1.0
     assert args.allow_domain == []
+    assert args.output is None
+    assert args.report is None
 
 
 def test_flags():
@@ -33,14 +38,30 @@ def test_flags():
     assert args.allow_domain == ["a.com", "b.com"]
 
 
+def test_output_options():
+    args = parse_args(["--output", "r.json", "--report", "r.html"])
+    assert args.output == "r.json"
+    assert args.report == "r.html"
+
+
+def test_output_folder_that_exists_is_accepted():
+    with tempfile.TemporaryDirectory() as folder:
+        out = os.path.join(folder, "r.json")
+        rep = os.path.join(folder, "r.html")
+        args = parse_args(["--output", out, "--report", rep])
+        assert args.output == out and args.report == rep
+
+
 def test_bad_values_are_rejected():
     # argparse calls sys.exit(2) on a bad value, which raises SystemExit
     bad_inputs = [
         ["--max-pages", "0"],
         ["--max-depth", "-1"],
         ["--delay", "-1"],
-        ["example.com"],  # seed without http:// or https://
+        ["example.com"],  # seed without a scheme
         ["--max-pages", "ten"],  # not a number
+        ["--output", "no_such_folder/x.json"],  # folder does not exist
+        ["--report", "no_such_folder/x.html"],
     ]
     for argv in bad_inputs:
         try:
@@ -53,5 +74,7 @@ def test_bad_values_are_rejected():
 if __name__ == "__main__":
     test_defaults()
     test_flags()
+    test_output_options()
+    test_output_folder_that_exists_is_accepted()
     test_bad_values_are_rejected()
     print("All cli tests passed")

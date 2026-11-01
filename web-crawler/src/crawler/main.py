@@ -1,19 +1,22 @@
+import argparse
 import asyncio
-import aiohttp
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urldefrag, urlsplit
+import os
+import time
+from collections import Counter, deque
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import PurePosixPath
-from collections import deque, Counter
-from robots import get_robots, robots_url
+from urllib.parse import urldefrag, urljoin, urlsplit
+
+import aiohttp
+from bs4 import BeautifulSoup
+
 from rate_limit import choose_gap, wait_for_turn
-import argparse
-import time
-from dataclasses import dataclass, field
-from summary import summarize
-from retry import is_retryable, backoff_delay
-from storage import save_results, records_to_dicts
 from report import build_report_html, save_report
+from retry import backoff_delay, is_retryable
+from robots import get_robots, robots_url
+from storage import records_to_dicts, save_results
+from summary import summarize
 
 
 @dataclass
@@ -75,6 +78,10 @@ def parse_args(argv=None):
         p.error(
             "--max-pages must be at least 1; --max-depth and --delay can't be negative"
         )
+    # check the output folders BEFORE crawling, so a typo can't throw the results away
+    for path in (args.output, args.report):
+        if path and not os.path.isdir(os.path.dirname(path) or "."):
+            p.error(f"the folder for {path} does not exist")
     return args
 
 
