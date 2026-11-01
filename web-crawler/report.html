@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crawl report</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 1100px; color: #222; }
+h1 { margin-bottom: 0.2rem; }
+h2 { margin-top: 2rem; border-bottom: 2px solid #eee; padding-bottom: 0.3rem; }
+.muted { color: #777; font-size: 0.9rem; }
+.cards { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+.card { border: 1px solid #ddd; border-radius: 8px; padding: 0.8rem 1.2rem; min-width: 130px; }
+.card .number { font-size: 1.8rem; font-weight: bold; }
+.card.bad .number { color: #b00020; }
+table { border-collapse: collapse; width: 100%; margin-top: 0.5rem; font-size: 0.9rem; }
+th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; word-break: break-all; }
+th { background: #f5f5f5; }
+tr:nth-child(even) td { background: #fafafa; }
+</style>
+</head>
+<body>
+<h1>Crawl report</h1>
+<p class="muted">Generated 2026-11-01 21:21</p>
+<div class="cards"><div class='card'><div class='number'>0</div><div class='muted'>pages fetched</div></div><div class='card bad'><div class='number'>1</div><div class='muted'>pages failed</div></div><div class='card'><div class='number'>0</div><div class='muted'>skipped by robots.txt</div></div><div class='card'><div class='number'>51.3s</div><div class='muted'>time taken</div></div></div>
+
+<h2>Failed pages</h2>
+<table><tr><th>URL</th><th>Status / error</th><th>Attempts</th></tr><tr><td>https://books.toscrape.com/</td><td>TimeoutError</td><td>3</td></tr></table>
+
+<h2>Failure reasons</h2>
+<table><tr><th>Reason</th><th>Count</th></tr><tr><td>TimeoutError</td><td>1</td></tr></table>
+
+<h2>Results by status</h2>
+<table><tr><th>Status</th><th>Pages</th></tr><tr><td>TimeoutError</td><td>1</td></tr></table>
+
+<h2>All pages</h2>
+<table><tr><th>URL</th><th>Depth</th><th>Status</th><th>Title</th><th>Internal links</th></tr><tr><td>https://books.toscrape.com/</td><td>0</td><td>TimeoutError</td><td></td><td>0</td></tr></table>
+
+<h2>Links seen by type</h2>
+<p class="muted">A link is counted once for every page it appears on.</p>
+<p class='muted'>none</p>
+</body>
+</html>

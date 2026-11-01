@@ -12,6 +12,8 @@ import time
 from dataclasses import dataclass, field
 from summary import summarize
 from retry import is_retryable, backoff_delay
+from storage import save_results, records_to_dicts
+from report import build_report_html, save_report
 
 
 @dataclass
@@ -62,6 +64,10 @@ def parse_args(argv=None):
         default=[],
         help="extra domain to treat as internal (can be repeated)",
     )
+    p.add_argument(
+        "--output", help="write the summary and all page records to this JSON file"
+    )
+    p.add_argument("--report", help="write an HTML report to this file")
     args = p.parse_args(argv)
     if urlsplit(args.seed).scheme not in {"http", "https"}:
         p.error("the seed must start with http:// or https://")
@@ -234,3 +240,9 @@ if __name__ == "__main__":
     print(f"time:            {summary['elapsed']:.1f}s")
     if not records:
         print("nothing was crawled: check the seed URL or robots.txt")
+    if args.output:
+        save_results(records, summary, args.output)
+        print(f"results saved to {args.output}")
+    if args.report:
+        save_report(build_report_html(summary, records_to_dicts(records)), args.report)
+        print(f"report saved to {args.report}")

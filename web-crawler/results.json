@@ -1,0 +1,23 @@
+{
+  "summary": {
+    "pages_ok": 0,
+    "pages_failed": 1,
+    "failure_reasons": {
+      "TimeoutError": 1
+    },
+    "skipped_robots": 0,
+    "links_seen": {},
+    "elapsed": 51.312000000005355
+  },
+  "pages": [
+    {
+      "url": "https://books.toscrape.com/",
+      "depth": 0,
+      "status": null,
+      "error": "TimeoutError",
+      "attempts": 3,
+      "title": null,
+      "link_counts": {}
+    }
+  ]
+}
