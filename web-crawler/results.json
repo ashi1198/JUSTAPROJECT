@@ -1,23 +1,157 @@
 {
   "summary": {
-    "pages_ok": 0,
-    "pages_failed": 1,
-    "failure_reasons": {
-      "TimeoutError": 1
-    },
+    "pages_ok": 10,
+    "pages_failed": 0,
+    "failure_reasons": {},
     "skipped_robots": 0,
-    "links_seen": {},
-    "elapsed": 51.312000000005355
+    "links_seen": {
+      "INTERNAL": 570,
+      "EXTERNAL": 0,
+      "MEDIA": 0,
+      "INVALID": 0
+    },
+    "elapsed": 85.84400000001187
   },
   "pages": [
     {
       "url": "https://books.toscrape.com/",
       "depth": 0,
-      "status": null,
-      "error": "TimeoutError",
+      "status": 200,
+      "error": null,
+      "attempts": 1,
+      "title": "All products | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 73,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
+    },
+    {
+      "url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
+      "depth": 1,
+      "status": 200,
+      "error": null,
+      "attempts": 1,
+      "title": "A Light in the Attic | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 3,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
+    },
+    {
+      "url": "https://books.toscrape.com/catalogue/category/books/academic_40/index.html",
+      "depth": 1,
+      "status": 200,
+      "error": null,
+      "attempts": 1,
+      "title": "Academic | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 53,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
+    },
+    {
+      "url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html",
+      "depth": 1,
+      "status": 200,
+      "error": null,
+      "attempts": 1,
+      "title": "Add a comment | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 73,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
+    },
+    {
+      "url": "https://books.toscrape.com/catalogue/category/books/adult-fiction_29/index.html",
+      "depth": 1,
+      "status": 200,
+      "error": null,
+      "attempts": 1,
+      "title": "Adult Fiction | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 53,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
+    },
+    {
+      "url": "https://books.toscrape.com/catalogue/category/books/art_25/index.html",
+      "depth": 1,
+      "status": 200,
+      "error": null,
+      "attempts": 2,
+      "title": "Art | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 60,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
+    },
+    {
+      "url": "https://books.toscrape.com/catalogue/category/books/autobiography_27/index.html",
+      "depth": 1,
+      "status": 200,
+      "error": null,
       "attempts": 3,
-      "title": null,
-      "link_counts": {}
+      "title": "Autobiography | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 61,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
+    },
+    {
+      "url": "https://books.toscrape.com/catalogue/category/books/biography_36/index.html",
+      "depth": 1,
+      "status": 200,
+      "error": null,
+      "attempts": 1,
+      "title": "Biography | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 57,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
+    },
+    {
+      "url": "https://books.toscrape.com/catalogue/category/books/business_35/index.html",
+      "depth": 1,
+      "status": 200,
+      "error": null,
+      "attempts": 1,
+      "title": "Business | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 64,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
+    },
+    {
+      "url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html",
+      "depth": 1,
+      "status": 200,
+      "error": null,
+      "attempts": 1,
+      "title": "Childrens | Books to Scrape - Sandbox",
+      "link_counts": {
+        "INTERNAL": 73,
+        "EXTERNAL": 0,
+        "MEDIA": 0,
+        "INVALID": 0
+      }
     }
   ]
 }
